@@ -1,47 +1,38 @@
-class httpClient {
+const httpClient = class {
     async getPublicIPAddress() {
-        let ip1
-        let ip2
-        //fetch public IP address from ipify.org
-        await fetch("https://api.ipify.org?format=json")
-            .then(async (response) => {
-                response = await response.json()
-                ip1 = response.ip
-            })
-            .catch(function (err) {
-                console.log("Unable to fetch -", err);
-            });
+        try {
+            const [ipifyResponse, seeipResponse] = await Promise.all([
+                fetch("https://api.ipify.org?format=json"),
+                fetch("https://api.seeip.org/jsonip?"),
+            ]);
 
+            const ip1 = (await ipifyResponse.json()).ip;
+            const ip2 = (await seeipResponse.json()).ip;
 
-        // then, fetch public IP address from seeip.org
-        await fetch("https://api.seeip.org/jsonip?")
-            .then(async (response) => {
-                response = await response.json()
-                ip2 = response.ip
-            })
-            .catch(function (err) {
-                console.log("Unable to fetch -", err);
-            });
-
-        // When done, compare the results.
-        if (ip1 === ip2) {
-            return { success: true, ip: ip1 }
-        } else {
-            console.log("Error, Unreliable ip detected. Please use Ngrok instead.")
-            return { success: false }
+            if (ip1 === ip2) {
+                return { success: true, ip: ip1 };
+            } else {
+                console.log("Error, Unreliable IP detected. Please use Ngrok instead.");
+                return { success: false };
+            }
+        } catch (err) {
+            console.error("Unable to fetch -", err);
+            return { success: false };
         }
     }
 
-
-    async makeLocalRequest(port, path){
-        await fetch("http://localhost:" + port + "/" + path)
-            .then(async (response) => {
-                return await response.text()
-            })
-            .catch(function (err) {
-                console.log("Unable to fetch -", err);
-            });
+    async makeLocalRequest(port, path) {
+        try {
+            const response = await fetch(`http://localhost:${port}${path}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return await response.text();
+        } catch (err) {
+            console.error("Unable to fetch -", err);
+            throw err; // Propagate the error so it can be handled by the caller
+        }
     }
-}
+};
 
 module.exports = new httpClient();
