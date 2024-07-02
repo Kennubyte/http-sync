@@ -31,6 +31,17 @@ class httpClient {
             return { success: false }
         }
     }
+
+
+    async makeLocalRequest(port, path){
+        await fetch("http://localhost:" + port + "/" + path)
+            .then(async (response) => {
+                return await response.text()
+            })
+            .catch(function (err) {
+                console.log("Unable to fetch -", err);
+            });
+    }
 }
 
 module.exports = new httpClient();

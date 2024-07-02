@@ -1,5 +1,3 @@
-const fs = require('fs');
-const path = require('path');
 const crypto = require('crypto');
 const httpClient = require('./httpClient');
 const ngrok = require('ngrok');
@@ -9,6 +7,7 @@ class Server {
     constructor() {
         this.port = 31235;
         this.password = "";
+        this.portPool = new Set();
 
         this.io = null;
         this.server = null;
@@ -60,26 +59,64 @@ class Server {
 
         this.io.on('connection', (socket) => {
             clients.push(socket);
-
+            console.log("Got connection.")
             const authTimeout = setTimeout(() => {
+                console.log("Authentication timeout.")
                 socket.disconnect();
             }, 5000);
 
             socket.on('auth', (data) => {
+                console.log("Authenticating...")
                 if (data.password === password) {
+                    console.log("Authenticated.")
                     socket.emit('authenticated');
                     clearTimeout(authTimeout);
+                    this.portPool.forEach((port) => {
+                        socket.emit('addPortToMainPool', port)
+                    })
                 }
             });
 
-            socket.on('message', (message) => {
+            
+            socket.on('publicRequest', (message) => {
                 console.log("Message received")
                 clients.forEach((client) => {
                     if (client !== socket) {
-                        client.emit('message', message);
+                        client.emit('publicRequest', message);
                     }
                 });
             });
+
+
+            socket.on('publicResponse', (message) => {
+                console.log("Message received")
+                clients.forEach((client) => {
+                    if (client !== socket) {
+                        client.emit('publicResponse', message);
+                    }
+                });
+            });
+
+
+            socket.on('addPortToMainPool', (port) => {
+                console.log('Broadcasting port to clients: ' + port);
+                this.portPool.add(port);
+                clients.forEach((client) => {
+                    if (client !== socket) {
+                        client.emit('addPortToMainPool', port);
+                    }
+                });
+            })
+
+            socket.on('removePortFromMainPool', (port) => {
+                console.log('Broadcasting port to clients: ' + port);
+                this.portPool.delete(port);
+                clients.forEach((client) => {
+                    if (client !== socket) {
+                        client.emit('removePortFromMainPool', port);
+                    }
+                });
+            })
 
             socket.on('disconnect', () => {
                 clients.splice(clients.indexOf(socket), 1);
