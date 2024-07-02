@@ -1,3 +1,6 @@
+const server = require('./server');
+const client = require('./client');
+const httpClient = require('./httpClient');
 const express = require('express');
 const path = require('path');
 const app = express();
@@ -18,8 +21,56 @@ app.get('/*', (req, res) => {
     }
 });
 
+
+app.post('/api/serveDirect', async (req, res) => {
+    const clientIP = req.ip;
+    if (!isLoopbackAddress(clientIP)) {
+        return res.status(403).send('Forbidden');
+    }
+
+    const data = await server.startWebsocketServerDirectly()
+    const encodedIP = Buffer.from(data.ipData.ip, 'utf8').toString('base64');
+
+    let responseData = {
+        cID: encodedIP,
+        password: data.password
+    }
+
+    res.json(responseData)
+});
+
+
+app.post('/api/serveNgrok', async (req, res) => {
+    const clientIP = req.ip;
+    if (!isLoopbackAddress(clientIP)) {
+        return res.status(403).send('Forbidden');
+    }
+
+    const data = await server.startWebsocketServerWithNgrok()
+    const encodedIP = Buffer.from(data.url, 'utf8').toString('base64');
+
+    let responseData = {
+        cID: encodedIP,
+        password: data.password
+    }
+
+    res.json(responseData)
+});
+
+
+app.post('/api/stopServing', async (req, res) => {
+    const clientIP = req.ip;
+    if (!isLoopbackAddress(clientIP)) {
+        return res.status(403).send('Forbidden');
+    }
+    console.log('Stopping server');
+    server.stopWebSocketServer();
+
+    return res.status(200).send("OK");
+});
+
+
 const PORT = 31234;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-    console.log('Press Ctrl+C to stop');
+app.listen(PORT, async () => {
+    console.log(`WebUI is running on port ${PORT}`);
 });
