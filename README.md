@@ -13,4 +13,4 @@ npm start
 4) Profit!
 
 # NOTE
-Minimal setup is the host/server and the user. This WILL cause visual desync between players thus, If possible. everyone should have this running, and connected but it will work with just host and you
+Minimal setup is the host/server and the user. This **WILL** cause visual desync between players thus, If possible. everyone should have this running, and connected but it will work with just host and you
